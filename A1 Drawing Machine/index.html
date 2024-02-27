@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <title>Painting Board</title>
+</head>
+
+<body>
+    <label for="canvasWidth">Canvas Width:</label>
+    <input type="number" id="canvasWidth" placeholder="Enter width">
+
+    <label for="canvasHeight">Canvas Height:</label>
+    <input type="number" id="canvasHeight" placeholder="Enter height">
+
+    <button onclick="resizeBoard()">Resize Canvas</button>
+    <input type="file" id="uploadInput" accept="image/*" onchange="handleFile(this)">
+    <style>
+        
+        #canvasWidth {
+            margin-bottom: 2px;
+        }
+
+    </style>
+    <script>
+        let canvas;
+        let drawing = [];
+        let currentPath = [];
+        let isDrawing = false;
+        let thicknessSlider; //don't declare this in setup
+        let colorPicker; //don't declare this in setup
+        let opacitySlider;
+        let backgroundImage;
+
+        function setup() {
+            canvas = createCanvas(1400, 600);
+            canvas.mousePressed(onMousePressed);
+            canvas.mouseReleased(onMouseReleased);
+            canvas.style('border', '2px dashed black');
+
+            colorPicker = createColorPicker('#000000');
+            colorPicker.position(250, height + 45);
+            let colorPickerLable = createElement('label', 'Click center mouse button to pick color on the canvas.');
+            colorPickerLable.position(colorPicker.x + 80, colorPicker.y);
+            colorPickerLable.style('font-size', '14px');
+
+            thicknessSlider = createSlider(1, 10, 3, 1);
+            thicknessSlider.position(10, height + 40);
+            let thicknessLable = createElement('label', 'Thickness');
+            thicknessLable.position(thicknessSlider.x + 170, thicknessSlider.y);
+            thicknessLable.style('font-size', '14px');
+
+            opacitySlider = createSlider(0, 255, 255, 1); //alpha 0-255!!!
+            opacitySlider.position(10, height + 60);
+            let opacityLable = createElement('label', 'Opacity');
+            opacityLable.position(opacitySlider.x + 170, opacitySlider.y);
+            opacityLable.style('font-size', '14px');
+
+            let undoButton = createButton('undo'); //i don't why this can be declare here, move it to beginning preferring it to be neat
+            undoButton.position(10, height + 85);
+            undoButton.mousePressed(undoPath);
+
+            let saveButton = createButton('save');
+            saveButton.position(80, height + 85);
+            saveButton.mousePressed(savePainting);
+            
+            let uploadInput = document.getElementById('uploadInput');
+            let fileLable = createElement('label', 'Choose a background image → ');
+            fileLable.style('font-size', '14px');
+            uploadInput.parentElement.insertBefore(fileLable.elt, uploadInput);
+        }
+
+        function draw() {
+            //background(255);
+            if (backgroundImage) {
+                background(backgroundImage);
+            } else {
+                background(255);
+            }
+
+            // draw previous path
+            for (let path of drawing) {
+                beginShape();
+                for (let point of path) {
+                    strokeWeight(point.thickness);
+                    stroke(red(point.color), green(point.color), blue(point.color), point.opacity);
+                    noFill();
+                    vertex(point.x, point.y);
+                }
+                endShape();
+            }
+
+
+            // record and draw present one path
+            if (isDrawing) {
+                let point = {
+                    x: mouseX,
+                    y: mouseY,
+                    thickness: thicknessSlider.value(),
+                    color: colorPicker.color(),
+                    opacity: opacitySlider.value()
+                };
+                currentPath.push(point);
+
+                strokeWeight(thicknessSlider.value());
+                stroke(red(point.color), green(point.color), blue(point.color), point.opacity);
+                noFill();
+                beginShape();
+                for (let p of currentPath) {
+                    vertex(p.x, p.y);
+                }
+                endShape();
+            }
+
+        }
+
+        function onMousePressed() {
+            if (mouseButton === LEFT) {
+                currentPath = [];
+                isDrawing = true;
+            }
+            if (mouseButton === CENTER) {
+                let col = get(mouseX, mouseY);
+                colorPicker.value('#' + red(col).toString(16) + green(col).toString(16) + blue(col).toString(16));
+            }
+
+        }
+
+        function onMouseReleased() {
+            if (mouseButton === LEFT) {
+                isDrawing = false;
+                drawing.push(currentPath.slice());
+                currentPath = [];
+            }
+
+        }
+
+        function undoPath() {
+            if (drawing.length > 0) {
+                drawing.pop();
+            }
+        }
+
+        function savePainting() {
+            saveCanvas('MyArtwork', 'png');
+        }
+
+        function handleFile(input) {
+            let file = input.files[0];
+            if (file) {
+                loadImage(URL.createObjectURL(file), function(img) {
+                    backgroundImage = img;
+                    redraw();
+                });
+            }
+        }
+
+        function resizeBoard() {
+            let newWidth = document.getElementById('canvasWidth').value;
+            let newHeight = document.getElementById('canvasHeight').value;
+            resizeCanvas(newWidth, newHeight);
+            //background(220); 
+        }
+
+    </script>
+</body>
+
+</html>
